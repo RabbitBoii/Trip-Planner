@@ -4,16 +4,31 @@ import { toast } from 'sonner';
 import { AI_PROMPT, SelectBudgetOptions, SelectTravelList } from '@/constants/Options';
 import React, { useEffect, useState } from 'react'
 import Autocomplete from "react-google-autocomplete"
-import { chatResponse } from '@/service/AIModel';
+import { aiTrip } from '@/service/AIModel';
+// import { chatResponse } from '@/service/AIModel';
+
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { assets } from '@/assets/assets';
+import { useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
+import { collection, doc, setDoc } from 'firebase/firestore';
+import { db } from '@/service/FirebaseConfig';
 
 
 
 function CreateTrip() {
 
-
     const [place, setPlace] = useState()
+    const [openDialog, setOpenDialog] = useState(false)
     const [formData, setFormData] = useState([])
-
+    const [loading, setLoading] = useState(false)
 
     const handleInputChange = (name, value) => {
         setFormData({
@@ -22,36 +37,89 @@ function CreateTrip() {
         })
     };
 
-
     useEffect(() => {
         console.log(formData);
     }, [formData])
 
+    const login = useGoogleLogin({
+        onSuccess: (codeResp) => getUser(codeResp),
+        onError: (error) => console.log(error)
+    })
+
     const OnGenerateTrip = async () => {
+
+        const user = localStorage.getItem("user")
+
+        if (!user) {
+            setOpenDialog(true)
+            return
+        }
+
+
         if (formData?.noOfDays > 10 && !formData?.location || !formData?.budget || !formData?.traveller) {
             // console.log("Itni chutti na milni :(")
             toast("Please give me all the details to generate your trip!")
             return;
         }
+
         if (formData?.noOfDays > 10) {
             toast("Itni chutti na milni bro :(")
             return
         }
+
         // if (formData?.noOfDays > 10) {
         //     toast("Please give valid details!")
         //     return;
         // }
+        setLoading(true)
         const FINAL_PROMPT = AI_PROMPT
-            .replace("{location}", formData?.location?.formatted_address)
+            // .replace("{location}", formData?.location?.formatted_address)
+            .replace("{location}", formData?.location)
             .replace("{budget}", formData?.budget)
             .replace("{totalDays}", formData?.noOfDays)
             .replace("{traveller}", formData?.traveller)
             .replace("{totalDays}", formData?.noOfDays)
-
         console.log(FINAL_PROMPT)
 
-        const result = await chatResponse.sendMessage({ message: FINAL_PROMPT })
-        console.log(result?.response?.text())
+        const rawresult = await aiTrip(FINAL_PROMPT)
+        const result = rawresult.replace(/```json|```/g, '').trim()
+        console.log(result)
+        setLoading(false)
+        saveTrip(result)
+    }
+
+    const saveTrip = async (tripData) => {
+
+        setLoading(true)
+        const user = JSON.parse(localStorage.getItem("user"))
+        const docId = Date.now().toString()
+
+
+        await setDoc(doc(db, "UserTrips", docId), {
+            id: docId,
+            userEmail: user?.email,
+            userSelection: formData,
+            deets: JSON.parse(tripData)
+        })
+
+
+        setLoading(false)
+    }
+
+
+    const getUser = (tokenInfo) => {
+        axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`, {
+            headers: {
+                Authorization: `Bearer ${tokenInfo?.access_token}`,
+                Accept: 'Application/json'
+            }
+        }).then((res) => {
+            console.log(res)
+            localStorage.setItem("user", JSON.stringify(res.data))
+            setOpenDialog(false)
+            OnGenerateTrip()
+        })
+
     }
 
     return (
@@ -70,7 +138,10 @@ function CreateTrip() {
                     /> */}
                     <Autocomplete apiKey={import.meta.env.VITE_GOOGLE_PLACE_API_KEY}
                         // onPlaceSelected={place}
-                        onPlaceSelected={place => { setPlace(place); handleInputChange('location', place) }}
+                        onPlaceSelected={place => {
+                            setPlace(place);
+                            handleInputChange('location', place?.formatted_address)
+                        }}
                     />
                 </div>
             </div>
@@ -110,9 +181,21 @@ function CreateTrip() {
             </div>
 
             <div className='my-15 justify-end flex '>
-                <Button onClick={OnGenerateTrip}>Generate Trip</Button>
+                <Button disabled={loading} onClick={OnGenerateTrip}> {loading ? <img src={assets.loading} className='h-6 w-6 animate-spin' alt="loading" /> : "Generate Trip"}</Button>
             </div>
 
+            <Dialog open={openDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogDescription>
+                            <img src='/logo.svg' alt="logo" />
+                            <h2 className='font-bold text-lg mt-6 mb-3'>Sign in with Google</h2>
+                            <p>Sign in to app with google authentication securely.</p>
+                            <Button className='w-full mt-5 flex gap-4 items-center' onClick={login}> <img src={assets.google} className='h-6 w-6' alt="" />  Sign in with Google</Button>
+                        </DialogDescription>
+                    </DialogHeader>
+                </DialogContent>
+            </Dialog>
 
         </div >
     )
