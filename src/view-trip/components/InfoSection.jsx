@@ -1,7 +1,26 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { assets } from '@/assets/assets'
+import { GetPlaceDetails } from '@/service/GlobalApi'
 
+
+const API_URl = "https://places.googleapis.com/v1/{NAME}/media?key=API_KEY&PARAMETERS"
 function InfoSection({ trip }) {
+
+    useEffect(() => {
+        trip && GetPlacePhoto()
+    }, [trip])
+
+    const GetPlacePhoto = async () => {
+        const data = {
+            textQuery: trip?.userSelection?.location
+        }
+
+        const result = await GetPlaceDetails(data).then(res => {
+            console.log(res.data?.places[0].photos[3].name)
+        })
+    }
+
+
     return (
         <div>
 

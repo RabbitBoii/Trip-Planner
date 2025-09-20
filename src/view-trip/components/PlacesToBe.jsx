@@ -5,7 +5,7 @@ function PlacesToBe({ trip }) {
     return (
         <div>
             <h2 className='font-bold text-xl mt-5'>Places to Visit</h2>
-            {/* <h2 className='font-bold text-lg mt-3'>{trip?.deets?.itinerary?.best_time_to_visit_delhi}</h2> */}
+            <h2 className='font-bold text-lg mt-3'>{trip?.deets?.itinerary[0]}</h2>
             <div className=''>
                 {trip?.deets?.itinerary?.days?.map((item, index) => (
                     <div className='mt-5'>
@@ -14,7 +14,7 @@ function PlacesToBe({ trip }) {
                         <div className='grid md:grid-cols-2 gap-5'>
                             {item?.plan.map((place, index) => (
                                 <div className='my-3'>
-                                    <h2 className='font-medium text-sm text-orange-400'>{place?.best_time_to_visit}</h2>
+                                    <h2 className='font-medium text-sm text-cyan-500'>{place?.best_time_to_visit}</h2>
                                     {/* <h2>{place.place_name}</h2> */}
                                     <PlaceCard place={place} />
                                 </div>
