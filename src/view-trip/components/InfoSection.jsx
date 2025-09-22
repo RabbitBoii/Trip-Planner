@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { assets } from '@/assets/assets'
-import { GetPlaceDetails } from '@/service/GlobalApi'
+import { GetPlaceDetails, PHOTO_REF_URL } from '@/service/GlobalApi'
 
 
-const API_URl = "https://places.googleapis.com/v1/{NAME}/media?key=API_KEY&PARAMETERS"
 function InfoSection({ trip }) {
+
+    const [photoUrl, setPhotoUrl] = useState()
 
     useEffect(() => {
         trip && GetPlacePhoto()
@@ -16,7 +17,12 @@ function InfoSection({ trip }) {
         }
 
         const result = await GetPlaceDetails(data).then(res => {
-            console.log(res.data?.places[0].photos[3].name)
+            const snap = res.data?.places[0].photos[4].name
+            console.log(snap)
+
+            const PhotoUrl = PHOTO_REF_URL.replace("{NAME}", snap)
+            console.log(PhotoUrl)
+            setPhotoUrl(PhotoUrl)
         })
     }
 
@@ -24,7 +30,7 @@ function InfoSection({ trip }) {
     return (
         <div>
 
-            <img src="/unsplash_1.jpg" alt="travel" className='h-[400px] w-full object-cover rounded-xl' />
+            <img src={photoUrl} alt="travel" className='h-[400px] w-full object-cover rounded-xl' />
 
             <div className='flex justify-between items-center'>
                 <div className='my-5 flex flex-col gap-2'>
