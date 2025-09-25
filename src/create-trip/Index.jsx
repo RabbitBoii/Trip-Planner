@@ -121,7 +121,6 @@ function CreateTrip() {
             setOpenDialog(false)
             OnGenerateTrip()
         })
-
     }
 
     return (
